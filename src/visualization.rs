@@ -15,6 +15,7 @@ pub struct VisualizeParams<'a> {
     pub mapping: &'a MappingResult,
     pub sort_mode: SortMode,
     pub show_mapping: bool,
+    pub summary_only: bool,
 }
 
 pub fn visualize(params: VisualizeParams) {
@@ -26,6 +27,7 @@ pub fn visualize(params: VisualizeParams) {
         mapping,
         sort_mode,
         show_mapping,
+        summary_only,
     } = params;
 
     // Sort segments
@@ -69,114 +71,116 @@ pub fn visualize(params: VisualizeParams) {
         }
     }
 
-    // ---- Table 1: Segments ----
-    eprintln!(
-        "\n{}",
-        "╔══════════════════════════════════════════════════════════════════╗".bold()
-    );
-    eprintln!(
-        "{}",
-        "║                      SEGMENT SUMMARY                             ║".bold()
-    );
-    eprintln!(
-        "{}",
-        "╚══════════════════════════════════════════════════════════════════╝".bold()
-    );
+    if !summary_only {
+        // ---- Table 1: Segments ----
+        eprintln!(
+            "\n{}",
+            "╔══════════════════════════════════════════════════════════════════╗".bold()
+        );
+        eprintln!(
+            "{}",
+            "║                      SEGMENT SUMMARY                             ║".bold()
+        );
+        eprintln!(
+            "{}",
+            "╚══════════════════════════════════════════════════════════════════╝".bold()
+        );
 
-    let mut segment_table = Table::new();
-    segment_table.set_header(vec![
-        Cell::new("ID").add_attribute(Attribute::Bold),
-        Cell::new("Type").add_attribute(Attribute::Bold),
-        Cell::new("Length").add_attribute(Attribute::Bold),
-        Cell::new("Source Range").add_attribute(Attribute::Bold),
-        Cell::new("Target Range").add_attribute(Attribute::Bold),
-        Cell::new("Content").add_attribute(Attribute::Bold),
-    ]);
-
-    for seg in &sorted_segments {
-        let color = match seg.label {
-            SegmentType::Common => Color::Green,
-            SegmentType::Missing => Color::Yellow,
-            SegmentType::Added => Color::Red,
-        };
-
-        let type_str = match seg.label {
-            SegmentType::Common => "✓ Common",
-            SegmentType::Missing => "⏺ Missing",
-            SegmentType::Added => "+ Added",
-        };
-
-        let src_range_str = seg
-            .source_range
-            .map_or("—".to_string(), |(s, e)| format!("{}..{}", s, e));
-        let tgt_range_str = seg
-            .target_range
-            .map_or("—".to_string(), |(s, e)| format!("{}..{}", s, e));
-
-        segment_table.add_row(vec![
-            Cell::new(seg.id.to_string()).fg(color),
-            Cell::new(type_str).fg(color),
-            Cell::new(seg.byte_len.to_string()).fg(color),
-            Cell::new(src_range_str).fg(color),
-            Cell::new(tgt_range_str).fg(color),
-            Cell::new(&seg.content).fg(color),
+        let mut segment_table = Table::new();
+        segment_table.set_header(vec![
+            Cell::new("ID").add_attribute(Attribute::Bold),
+            Cell::new("Type").add_attribute(Attribute::Bold),
+            Cell::new("Length").add_attribute(Attribute::Bold),
+            Cell::new("Source Range").add_attribute(Attribute::Bold),
+            Cell::new("Target Range").add_attribute(Attribute::Bold),
+            Cell::new("Content").add_attribute(Attribute::Bold),
         ]);
-    }
 
-    eprintln!("{}", segment_table);
+        for seg in &sorted_segments {
+            let color = match seg.label {
+                SegmentType::Common => Color::Green,
+                SegmentType::Missing => Color::Yellow,
+                SegmentType::Added => Color::Red,
+            };
 
-    // ---- Table 2: Clusters ----
-    eprintln!(
-        "\n{}",
-        "╔══════════════════════════════════════════════════════════════════╗".bold()
-    );
-    eprintln!(
-        "{}",
-        "║                      CLUSTER SUMMARY                             ║".bold()
-    );
-    eprintln!(
-        "{}",
-        "╚══════════════════════════════════════════════════════════════════╝".bold()
-    );
+            let type_str = match seg.label {
+                SegmentType::Common => "✓ Common",
+                SegmentType::Missing => "⏺ Missing",
+                SegmentType::Added => "+ Added",
+            };
 
-    let mut cluster_table = Table::new();
-    cluster_table.set_header(vec![
-        Cell::new("ID").add_attribute(Attribute::Bold),
-        Cell::new("Length").add_attribute(Attribute::Bold),
-        Cell::new("Source Range").add_attribute(Attribute::Bold),
-        Cell::new("Target Range").add_attribute(Attribute::Bold),
-        Cell::new("Density").add_attribute(Attribute::Bold),
-        Cell::new("Fragments").add_attribute(Attribute::Bold),
-        Cell::new("Content").add_attribute(Attribute::Bold),
-    ]);
+            let src_range_str = seg
+                .source_range
+                .map_or("—".to_string(), |(s, e)| format!("{}..{}", s, e));
+            let tgt_range_str = seg
+                .target_range
+                .map_or("—".to_string(), |(s, e)| format!("{}..{}", s, e));
 
-    for (_i, cluster) in clusters.iter().enumerate() {
-        let density_color = if cluster.density > 0.75 {
-            Color::Green
-        } else if cluster.density > 0.5 {
-            Color::Yellow
-        } else {
-            Color::Red
-        };
+            segment_table.add_row(vec![
+                Cell::new(seg.id.to_string()).fg(color),
+                Cell::new(type_str).fg(color),
+                Cell::new(seg.byte_len.to_string()).fg(color),
+                Cell::new(src_range_str).fg(color),
+                Cell::new(tgt_range_str).fg(color),
+                Cell::new(&seg.content).fg(color),
+            ]);
+        }
 
-        cluster_table.add_row(vec![
-            Cell::new(format!("{}", cluster.id)),
-            Cell::new(cluster.byte_len.to_string()),
-            Cell::new(format!(
-                "{}..{}",
-                cluster.source_range.0, cluster.source_range.1
-            )),
-            Cell::new(format!(
-                "{}..{}",
-                cluster.target_range.0, cluster.target_range.1
-            )),
-            Cell::new(format!("{:.2}", cluster.density)).fg(density_color),
-            Cell::new(cluster.fragment_count.to_string()),
-            Cell::new(&cluster.content),
+        eprintln!("{}", segment_table);
+
+        // ---- Table 2: Clusters ----
+        eprintln!(
+            "\n{}",
+            "╔══════════════════════════════════════════════════════════════════╗".bold()
+        );
+        eprintln!(
+            "{}",
+            "║                      CLUSTER SUMMARY                             ║".bold()
+        );
+        eprintln!(
+            "{}",
+            "╚══════════════════════════════════════════════════════════════════╝".bold()
+        );
+
+        let mut cluster_table = Table::new();
+        cluster_table.set_header(vec![
+            Cell::new("ID").add_attribute(Attribute::Bold),
+            Cell::new("Length").add_attribute(Attribute::Bold),
+            Cell::new("Source Range").add_attribute(Attribute::Bold),
+            Cell::new("Target Range").add_attribute(Attribute::Bold),
+            Cell::new("Density").add_attribute(Attribute::Bold),
+            Cell::new("Fragments").add_attribute(Attribute::Bold),
+            Cell::new("Content").add_attribute(Attribute::Bold),
         ]);
-    }
 
-    eprintln!("{}", cluster_table);
+        for (_i, cluster) in clusters.iter().enumerate() {
+            let density_color = if cluster.density > 0.75 {
+                Color::Green
+            } else if cluster.density > 0.5 {
+                Color::Yellow
+            } else {
+                Color::Red
+            };
+
+            cluster_table.add_row(vec![
+                Cell::new(format!("{}", cluster.id)),
+                Cell::new(cluster.byte_len.to_string()),
+                Cell::new(format!(
+                    "{}..{}",
+                    cluster.source_range.0, cluster.source_range.1
+                )),
+                Cell::new(format!(
+                    "{}..{}",
+                    cluster.target_range.0, cluster.target_range.1
+                )),
+                Cell::new(format!("{:.2}", cluster.density)).fg(density_color),
+                Cell::new(cluster.fragment_count.to_string()),
+                Cell::new(&cluster.content),
+            ]);
+        }
+
+        eprintln!("{}", cluster_table);
+    }
 
     // ---- Table 3: Mapping (Debug) ----
     if show_mapping {

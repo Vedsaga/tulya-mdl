@@ -12,7 +12,7 @@ A deterministic algorithm that aligns two strings by minimizing description leng
 
 Command:
 ```bash
-cargo run -- -s abcxyz -t abwxy -v v1 --debug
+cargo run -- -s abcxyz -t abwxy --debug
 ```
 
 Trimmed Output:

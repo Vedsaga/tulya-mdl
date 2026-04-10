@@ -66,6 +66,7 @@ fn main() {
                 mapping: &mapping,
                 sort_mode: args.sort,
                 show_mapping: args.show_mapping,
+                summary_only: !args.debug,
             });
         }
         return;
@@ -82,14 +83,14 @@ fn main() {
             // Show steps only if --debug
             fam.run_with_diagnostics(&source, &target, &mt, args.debug);
             
-            if !args.summary_only && !args.quiet {
-                let insights = fam.block_insights(&source, &target);
-                algorithms::mdl::core::diagnostics::print_block_table(&insights);
-                algorithms::mdl::core::diagnostics::print_ascii_alignment(&source, &target, &fam.blocks);
-            }
-            
-            let breakdown = fam.analyze(&source, &target);
-            if !args.quiet {
+            if args.debug {
+                if !args.summary_only {
+                    let insights = fam.block_insights(&source, &target);
+                    algorithms::mdl::core::diagnostics::print_block_table(&insights);
+                    algorithms::mdl::core::diagnostics::print_ascii_alignment(&source, &target, &fam.blocks);
+                }
+                
+                let breakdown = fam.analyze(&source, &target);
                 breakdown.print();
             }
 
@@ -122,6 +123,7 @@ fn main() {
             mapping: &mapping,
             sort_mode: args.sort,
             show_mapping: args.show_mapping,
+            summary_only: !args.debug,
         });
     }
 }
