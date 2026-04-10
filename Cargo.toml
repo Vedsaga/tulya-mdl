@@ -1,0 +1,13 @@
+[package]
+name = "tulya-mdl"
+version = "0.1.0"
+edition = "2024"
+authors = ["Tulya Team"]
+description = "Tulya–MDL: Deterministic MDL-Based Block Alignment"
+
+[dependencies]
+comfy-table = "7.1"
+colored = "2.1"
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
+bitvec = "1.0"
